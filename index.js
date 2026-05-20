@@ -36,7 +36,13 @@ async function run() {
 
         app.post("/cars", async (req, res) => {
             const carData = req.body;
-            const result = await carCollection.insertOne(carData)
+
+            const newCar = {
+                ...carData,
+                booking_count: 0,
+                createdAt: new Date()
+            };
+            const result = await carCollection.insertOne(newCar)
 
             res.json(result)
         })
@@ -47,6 +53,23 @@ async function run() {
 
             res.json(result)
         })
+
+        app.patch("/cars/book/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                const result = await carCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    {
+                        $inc: { booking_count: 1 }
+                    }
+                );
+
+                res.json(result);
+            } catch (error) {
+                res.status(500).json({ message: "Booking failed", error });
+            }
+        });
 
 
         await client.db("admin").command({ ping: 1 });
