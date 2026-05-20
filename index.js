@@ -23,11 +23,12 @@ const client = new MongoClient(uri, {
     }
 });
 
+let carCollection
 async function run() {
     try {
         await client.connect();
         const db = client.db("cargridhub")
-        const carCollection = db.collection("cars")
+        carCollection = db.collection("cars")
 
         app.get("/cars", async (req, res) => {
             const result = await carCollection.find().toArray()
@@ -47,12 +48,38 @@ async function run() {
             res.json(result)
         })
 
-        app.get("/cars/:id", async (req, res) => {
-            const { id } = req.params
-            const result = await carCollection.findOne({ _id: new ObjectId(id) })
+        // app.get("/cars/:id", async (req, res) => {
+        //     const { id } = req.params
+        //     const result = await carCollection.findOne({ _id: new ObjectId(id) })
 
-            res.json(result)
-        })
+        //     res.json(result)
+        // })
+
+        app.get("/cars/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                if (!ObjectId.isValid(id)) {
+                    return res.status(400).json({ message: "Invalid ID" });
+                }
+
+                const car = await carCollection.findOne({
+                    _id: new ObjectId(id),
+                });
+
+                if (!car) {
+                    return res.status(404).json({ message: "Car not found" });
+                }
+
+                res.json(car);
+
+            } catch (error) {
+                console.log(error);
+                res.status(500).json({ message: "Server error" });
+            }
+        });
+
+
 
         app.patch("/cars/book/:id", async (req, res) => {
             try {
@@ -71,6 +98,35 @@ async function run() {
             }
         });
 
+        app.patch("/cars/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                if (!ObjectId.isValid(id)) {
+                    return res.status(400).json({ message: "Invalid ID" });
+                }
+
+                const updatedData = { ...req.body };
+
+
+                delete updatedData._id;
+
+                const result = await carCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: updatedData }
+                );
+
+                if (result.matchedCount === 0) {
+                    return res.status(404).json({ message: "Car not found" });
+                }
+
+                res.json(result);
+
+            } catch (error) {
+                console.error("PATCH /cars/:id error:", error);
+                res.status(500).json({ message: "Update failed due to a server-side error" });
+            }
+        });
 
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
