@@ -24,11 +24,13 @@ const client = new MongoClient(uri, {
 });
 
 let carCollection
+let userCollection
 async function run() {
     try {
         await client.connect();
         const db = client.db("cargridhub")
         carCollection = db.collection("cars")
+        userCollection = db.collection("users");
 
         app.get("/cars", async (req, res) => {
             const result = await carCollection.find().toArray()
@@ -146,6 +148,22 @@ async function run() {
 
             } catch (error) {
                 res.status(500).json({ message: "Failed to delete car", error });
+            }
+        });
+
+        app.post("/users", async (req, res) => {
+            try {
+                const user = req.body;
+
+                const result = await userCollection.insertOne(user);
+
+                res.status(201).json({
+                    success: true,
+                    message: "User registered successfully",
+                    result,
+                });
+            } catch (error) {
+                res.status(500).json({ message: "Registration failed" });
             }
         });
 
