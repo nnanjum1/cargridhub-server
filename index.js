@@ -128,6 +128,29 @@ async function run() {
             }
         });
 
+        app.delete("/cars/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                if (!ObjectId.isValid(id)) {
+                    return res.status(400).json({ message: "Invalid car ID" });
+                }
+
+                const result = await carCollection.deleteOne({ _id: new ObjectId(id) });
+
+                if (result.deletedCount === 0) {
+                    return res.status(404).json({ message: "Car not found" });
+                }
+
+                res.json({ message: "Car deleted successfully" });
+
+            } catch (error) {
+                res.status(500).json({ message: "Failed to delete car", error });
+            }
+        });
+
+
+
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
